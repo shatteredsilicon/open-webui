@@ -4,7 +4,45 @@ from logging.config import fileConfig
 from alembic import context
 from open_webui.models.auths import Auth
 from open_webui.env import DATABASE_URL, DATABASE_PASSWORD, LOG_FORMAT
+import sqlalchemy as sa
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy import engine_from_config, pool, create_engine
+
+# --- MySQL/MariaDB compatibility shims ---------------------------------------
+# Goal: keep historical migrations unchanged, but make them runnable on mysql/mariadb.
+#
+# 1) mysql/mariadb require VARCHAR(length). Some older revisions use sa.String() with no length.
+@compiles(sa.String, "mysql")
+@compiles(sa.String, "mariadb")
+def _compile_string_mysql(type_, compiler, **kw):
+    if type_.length is None:
+        type_ = sa.String(length=255)
+    return compiler.visit_VARCHAR(type_, **kw)
+#
+# 2) mysql/mariadb cannot use TEXT/BLOB for PRIMARY KEY / UNIQUE / indexed columns
+#    (and TEXT is also problematic for FK columns) without a key length.
+#    Some historical migrations use sa.Text() for ids/keys.
+#    During migration DDL compilation only, rewrite those key Text columns to VARCHAR(255).
+try:
+    from sqlalchemy.dialects.mysql.base import MySQLDDLCompiler
+
+    _orig_get_colspec = MySQLDDLCompiler.get_column_specification
+
+    def _patched_get_column_specification(self, column, **kw):
+        # NOTE: For mysql/mariadb, FK columns must be type-compatible with the referenced key.
+        # If historical migrations used TEXT for FK columns, MySQL/MariaDB will reject the FK.
+        is_fk_col = bool(getattr(column, "foreign_keys", None))
+        if isinstance(column.type, sa.Text) and (
+            column.primary_key or column.unique or column.index or is_fk_col
+        ):
+            column = column.copy()
+            column.type = sa.String(length=255)
+        return _orig_get_colspec(self, column, **kw)
+
+    MySQLDDLCompiler.get_column_specification = _patched_get_column_specification
+except Exception:
+    # If MySQL dialect isn't installed/used, do nothing.
+    pass
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

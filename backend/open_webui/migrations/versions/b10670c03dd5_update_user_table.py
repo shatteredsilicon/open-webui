@@ -42,6 +42,11 @@ def _drop_sqlite_indexes_for_column(table_name, column_name, conn):
             conn.execute(sa.text(f"DROP INDEX IF EXISTS {index_name}"))
 
 
+def _quote_table(conn, name: str) -> str:
+    # Postgres uses "name"; MariaDB/MySQL uses `name`
+    return f"`{name}`" if conn.dialect.name in ("mysql", "mariadb") else f'"{name}"'
+
+
 def _convert_column_to_json(table: str, column: str):
     conn = op.get_bind()
     dialect = conn.dialect.name
@@ -145,8 +150,9 @@ def upgrade() -> None:
     )
 
     conn = op.get_bind()
+    q_user = _quote_table(conn, "user")
     users = conn.execute(
-        sa.text('SELECT id, oauth_sub FROM "user" WHERE oauth_sub IS NOT NULL')
+        sa.text(f'SELECT id, oauth_sub FROM {q_user} WHERE oauth_sub IS NOT NULL')
     ).fetchall()
 
     for uid, oauth_sub in users:
@@ -161,12 +167,12 @@ def upgrade() -> None:
 
             oauth_json = json.dumps({provider: {"sub": sub}})
             conn.execute(
-                sa.text('UPDATE "user" SET oauth = :oauth WHERE id = :id'),
+                sa.text(f'UPDATE {q_user} SET oauth = :oauth WHERE id = :id'),
                 {"oauth": oauth_json, "id": uid},
             )
 
     users_with_keys = conn.execute(
-        sa.text('SELECT id, api_key FROM "user" WHERE api_key IS NOT NULL')
+        sa.text(f'SELECT id, api_key FROM {q_user} WHERE api_key IS NOT NULL')
     ).fetchall()
     now = int(time.time())
 
@@ -200,8 +206,9 @@ def downgrade() -> None:
     op.add_column("user", sa.Column("oauth_sub", sa.Text(), nullable=True))
 
     conn = op.get_bind()
+    q_user = _quote_table(conn, "user")
     users = conn.execute(
-        sa.text('SELECT id, oauth FROM "user" WHERE oauth IS NOT NULL')
+        sa.text(f'SELECT id, oauth FROM {q_user} WHERE oauth IS NOT NULL')
     ).fetchall()
 
     for uid, oauth in users:
@@ -214,7 +221,7 @@ def downgrade() -> None:
             oauth_sub = None
 
         conn.execute(
-            sa.text('UPDATE "user" SET oauth_sub = :oauth_sub WHERE id = :id'),
+            sa.text(f'UPDATE {q_user} SET oauth_sub = :oauth_sub WHERE id = :id'),
             {"oauth_sub": oauth_sub, "id": uid},
         )
 
@@ -227,7 +234,7 @@ def downgrade() -> None:
     keys = conn.execute(sa.text("SELECT user_id, key FROM api_key")).fetchall()
     for uid, key in keys:
         conn.execute(
-            sa.text('UPDATE "user" SET api_key = :key WHERE id = :id'),
+            sa.text(f'UPDATE {q_user} SET api_key = :key WHERE id = :id'),
             {"key": key, "id": uid},
         )
 
