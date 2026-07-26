@@ -11,6 +11,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
+from open_webui.migrations.util import get_primary_key_name_for_drop
+
 # revision identifiers, used by Alembic.
 revision: str = '461111b60977'
 down_revision: Union[str, None] = '3c9b0ca343fd'
@@ -63,8 +65,9 @@ def upgrade() -> None:
         conn.execute(sa.text(f'DROP TABLE IF EXISTS _alembic_tmp_{table_name}'))
         with op.batch_alter_table(table_name) as batch_op:
             # Drop existing PK if any (e.g. on wrong column)
-            if pk_cols and pk.get('name'):
-                batch_op.drop_constraint(pk['name'], type_='primary')
+            pk_name = get_primary_key_name_for_drop(conn, pk)
+            if pk_cols and pk_name:
+                batch_op.drop_constraint(pk_name, type_='primary')
 
             batch_op.create_primary_key(f'pk_{table_name}', pk_columns)
 

@@ -8,7 +8,7 @@ import open_webui.internal.db  # noqa: F401
 import sqlalchemy as sa
 from alembic import op
 from open_webui.internal.db import JSONField
-from open_webui.migrations.util import get_existing_tables
+from open_webui.migrations.util import get_existing_tables, key_text, portable_string
 
 revision: str = '7e5b5dc7342b'
 down_revision: str | None = None
@@ -19,8 +19,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'auth',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('email', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('email', portable_string(), nullable=True),
             sa.Column('password', sa.Text(), nullable=True),
             sa.Column('active', sa.Boolean(), nullable=True),
         ],
@@ -29,13 +29,13 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'chat',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('title', sa.Text(), nullable=True),
             sa.Column('chat', sa.Text(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=True),
             sa.Column('updated_at', sa.BigInteger(), nullable=True),
-            sa.Column('share_id', sa.Text(), nullable=True),
+            sa.Column('share_id', key_text(), nullable=True),
             sa.Column('archived', sa.Boolean(), nullable=True),
         ],
         [sa.PrimaryKeyConstraint('id'), sa.UniqueConstraint('share_id')],
@@ -43,10 +43,10 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'chatidtag',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('tag_name', sa.String(), nullable=True),
-            sa.Column('chat_id', sa.String(), nullable=True),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('tag_name', portable_string(), nullable=True),
+            sa.Column('chat_id', portable_string(), nullable=True),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('timestamp', sa.BigInteger(), nullable=True),
         ],
         [sa.PrimaryKeyConstraint('id')],
@@ -54,12 +54,12 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'document',
         [
-            sa.Column('collection_name', sa.String(), nullable=False),
-            sa.Column('name', sa.String(), nullable=True),
+            sa.Column('collection_name', portable_string(), nullable=False),
+            sa.Column('name', portable_string(), nullable=True),
             sa.Column('title', sa.Text(), nullable=True),
             sa.Column('filename', sa.Text(), nullable=True),
             sa.Column('content', sa.Text(), nullable=True),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('timestamp', sa.BigInteger(), nullable=True),
         ],
         [sa.PrimaryKeyConstraint('collection_name'), sa.UniqueConstraint('name')],
@@ -67,8 +67,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'file',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('filename', sa.Text(), nullable=True),
             sa.Column('meta', JSONField(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=True),
@@ -78,8 +78,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'function',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('name', sa.Text(), nullable=True),
             sa.Column('type', sa.Text(), nullable=True),
             sa.Column('content', sa.Text(), nullable=True),
@@ -95,8 +95,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'memory',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('content', sa.Text(), nullable=True),
             sa.Column('updated_at', sa.BigInteger(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=True),
@@ -106,9 +106,9 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'model',
         [
-            sa.Column('id', sa.Text(), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=True),
-            sa.Column('base_model_id', sa.Text(), nullable=True),
+            sa.Column('id', key_text(), nullable=False),
+            sa.Column('user_id', key_text(), nullable=True),
+            sa.Column('base_model_id', key_text(), nullable=True),
             sa.Column('name', sa.Text(), nullable=True),
             sa.Column('params', JSONField(), nullable=True),
             sa.Column('meta', JSONField(), nullable=True),
@@ -120,8 +120,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'prompt',
         [
-            sa.Column('command', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('command', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('title', sa.Text(), nullable=True),
             sa.Column('content', sa.Text(), nullable=True),
             sa.Column('timestamp', sa.BigInteger(), nullable=True),
@@ -131,9 +131,9 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'tag',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('name', sa.String(), nullable=True),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('name', portable_string(), nullable=True),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('data', sa.Text(), nullable=True),
         ],
         [sa.PrimaryKeyConstraint('id')],
@@ -141,8 +141,8 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'tool',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('user_id', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('user_id', portable_string(), nullable=True),
             sa.Column('name', sa.Text(), nullable=True),
             sa.Column('content', sa.Text(), nullable=True),
             sa.Column('specs', JSONField(), nullable=True),
@@ -156,18 +156,18 @@ _INITIAL_TABLES: list[tuple[str, list[sa.Column], list]] = [
     (
         'user',
         [
-            sa.Column('id', sa.String(), nullable=False),
-            sa.Column('name', sa.String(), nullable=True),
-            sa.Column('email', sa.String(), nullable=True),
-            sa.Column('role', sa.String(), nullable=True),
+            sa.Column('id', portable_string(), nullable=False),
+            sa.Column('name', portable_string(), nullable=True),
+            sa.Column('email', portable_string(), nullable=True),
+            sa.Column('role', portable_string(), nullable=True),
             sa.Column('profile_image_url', sa.Text(), nullable=True),
             sa.Column('last_active_at', sa.BigInteger(), nullable=True),
             sa.Column('updated_at', sa.BigInteger(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=True),
-            sa.Column('api_key', sa.String(), nullable=True),
+            sa.Column('api_key', portable_string(), nullable=True),
             sa.Column('settings', JSONField(), nullable=True),
             sa.Column('info', JSONField(), nullable=True),
-            sa.Column('oauth_sub', sa.Text(), nullable=True),
+            sa.Column('oauth_sub', key_text(), nullable=True),
         ],
         [
             sa.PrimaryKeyConstraint('id'),

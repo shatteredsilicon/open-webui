@@ -11,6 +11,7 @@ from typing import Sequence, Union
 import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '6283dc0e4d8d'
@@ -27,17 +28,17 @@ def upgrade() -> None:
     if 'channel_file' not in existing_tables:
         op.create_table(
             'channel_file',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column(
                 'channel_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('channel.id', ondelete='CASCADE'),
                 nullable=False,
             ),
             sa.Column(
                 'file_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('file.id', ondelete='CASCADE'),
                 nullable=False,
             ),

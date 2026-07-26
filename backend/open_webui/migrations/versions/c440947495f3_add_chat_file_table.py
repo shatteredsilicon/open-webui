@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = 'c440947495f3'
@@ -26,17 +27,17 @@ def upgrade() -> None:
     if 'chat_file' not in existing_tables:
         op.create_table(
             'chat_file',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column(
                 'chat_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('chat.id', ondelete='CASCADE'),
                 nullable=False,
             ),
             sa.Column(
                 'file_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('file.id', ondelete='CASCADE'),
                 nullable=False,
             ),

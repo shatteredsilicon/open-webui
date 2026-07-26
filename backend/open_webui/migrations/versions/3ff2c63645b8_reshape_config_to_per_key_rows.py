@@ -12,6 +12,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 
 # revision identifiers, used by Alembic.
@@ -506,7 +507,7 @@ def upgrade() -> None:
         if has_new_config
         else op.create_table(
             'config',
-            sa.Column('key', sa.Text(), primary_key=True),
+            sa.Column('key', key_text(), primary_key=True),
             sa.Column('value', sa.JSON(), nullable=False),
             sa.Column('updated_at', sa.BigInteger(), nullable=True),
         )

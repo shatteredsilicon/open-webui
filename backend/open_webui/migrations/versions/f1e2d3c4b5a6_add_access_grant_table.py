@@ -17,12 +17,42 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from open_webui.migrations.util import get_existing_tables
+from open_webui.migrations.util import get_existing_tables, key_text
 
 revision: str = 'f1e2d3c4b5a6'
 down_revision: Union[str, None] = '8452d01d26d7'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+RESOURCE_TYPE_LENGTH = 64
+RESOURCE_ID_LENGTH = 191
+PRINCIPAL_TYPE_LENGTH = 64
+PRINCIPAL_ID_LENGTH = 191
+PERMISSION_LENGTH = 64
+
+
+def _validate_grant_lengths(
+    conn,
+    resource_type,
+    resource_id,
+    principal_type,
+    principal_id,
+    permission,
+) -> None:
+    """Reject values that cannot fit MariaDB's indexed grant columns."""
+    if conn.dialect.name not in {'mysql', 'mariadb'}:
+        return
+
+    values = {
+        'resource_type': (resource_type, RESOURCE_TYPE_LENGTH),
+        'resource_id': (resource_id, RESOURCE_ID_LENGTH),
+        'principal_type': (principal_type, PRINCIPAL_TYPE_LENGTH),
+        'principal_id': (principal_id, PRINCIPAL_ID_LENGTH),
+        'permission': (permission, PERMISSION_LENGTH),
+    }
+    for column, (value, maximum) in values.items():
+        if value is not None and len(str(value)) > maximum:
+            raise ValueError(f'access_grant.{column} exceeds {maximum} characters')
 
 
 def upgrade() -> None:
@@ -32,12 +62,12 @@ def upgrade() -> None:
     if 'access_grant' not in existing_tables:
         op.create_table(
             'access_grant',
-            sa.Column('id', sa.Text(), nullable=False, primary_key=True),
-            sa.Column('resource_type', sa.Text(), nullable=False),
-            sa.Column('resource_id', sa.Text(), nullable=False),
-            sa.Column('principal_type', sa.Text(), nullable=False),
-            sa.Column('principal_id', sa.Text(), nullable=False),
-            sa.Column('permission', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), nullable=False, primary_key=True),
+            sa.Column('resource_type', key_text(RESOURCE_TYPE_LENGTH), nullable=False),
+            sa.Column('resource_id', key_text(RESOURCE_ID_LENGTH), nullable=False),
+            sa.Column('principal_type', key_text(PRINCIPAL_TYPE_LENGTH), nullable=False),
+            sa.Column('principal_id', key_text(PRINCIPAL_ID_LENGTH), nullable=False),
+            sa.Column('permission', key_text(PERMISSION_LENGTH), nullable=False),
             sa.Column('created_at', sa.BigInteger(), nullable=False),
             sa.UniqueConstraint(
                 'resource_type',
@@ -88,9 +118,16 @@ def upgrade() -> None:
         if 'access_control' not in table_cols or 'id' not in table_cols:
             continue
 
-        # Query all rows
-        result = conn.execute(sa.text(f'SELECT id, access_control FROM "{table_name}"'))
-        rows = result.fetchall()
+        # Query all rows through SQLAlchemy so reserved table names are quoted
+        # correctly for every supported dialect.
+        resource_table = sa.table(
+            table_name,
+            sa.column('id'),
+            sa.column('access_control'),
+        )
+        rows = conn.execute(
+            sa.select(resource_table.c.id, resource_table.c.access_control)
+        ).fetchall()
 
         for row in rows:
             resource_id = row[0]
@@ -112,6 +149,7 @@ def upgrade() -> None:
 
                 key = (resource_type, resource_id, 'user', '*', 'read')
                 if key not in inserted:
+                    _validate_grant_lengths(conn, resource_type, resource_id, 'user', '*', 'read')
                     try:
                         conn.execute(
                             sa.text("""
@@ -168,6 +206,9 @@ def upgrade() -> None:
                     key = (resource_type, resource_id, 'group', group_id, permission)
                     if key in inserted:
                         continue
+                    _validate_grant_lengths(
+                        conn, resource_type, resource_id, 'group', group_id, permission
+                    )
                     try:
                         conn.execute(
                             sa.text("""
@@ -192,6 +233,9 @@ def upgrade() -> None:
                     key = (resource_type, resource_id, 'user', user_id, permission)
                     if key in inserted:
                         continue
+                    _validate_grant_lengths(
+                        conn, resource_type, resource_id, 'user', user_id, permission
+                    )
                     try:
                         conn.execute(
                             sa.text("""
@@ -247,8 +291,19 @@ def downgrade() -> None:
         except Exception:
             pass
 
+    access_grant_table = sa.table(
+        'access_grant',
+        sa.column('resource_id'),
+        sa.column('resource_type'),
+    )
+
     # Step 2: Query access_grant table and reconstruct JSON for each resource
     for table_name, resource_type in resource_tables:
+        resource_table = sa.table(
+            table_name,
+            sa.column('id'),
+            sa.column('access_control'),
+        )
         try:
             # Get all grants for this resource type
             result = conn.execute(
@@ -316,8 +371,13 @@ def downgrade() -> None:
 
             try:
                 conn.execute(
-                    sa.text(f'UPDATE "{table_name}" SET access_control = :access_control WHERE id = :id'),
-                    {'access_control': access_control_value, 'id': resource_id},
+                    resource_table.update()
+                    .where(resource_table.c.id == sa.bindparam('resource_id'))
+                    .values(access_control=sa.bindparam('access_control_value')),
+                    {
+                        'access_control_value': access_control_value,
+                        'resource_id': resource_id,
+                    },
                 )
             except Exception:
                 pass
@@ -327,16 +387,18 @@ def downgrade() -> None:
         # For other resources: {} means private, so update to {}
         if resource_type != 'file':
             try:
+                granted_resource_ids = sa.select(access_grant_table.c.resource_id).where(
+                    access_grant_table.c.resource_type == sa.bindparam('resource_type')
+                )
                 conn.execute(
-                    sa.text(f"""
-                        UPDATE "{table_name}" 
-                        SET access_control = :private_value
-                        WHERE id NOT IN (
-                            SELECT DISTINCT resource_id FROM access_grant WHERE resource_type = :resource_type
-                        )
-                        AND access_control IS NULL
-                    """),
-                    {'private_value': json.dumps({}), 'resource_type': resource_type},
+                    resource_table.update()
+                    .where(resource_table.c.id.not_in(granted_resource_ids))
+                    .where(resource_table.c.access_control.is_(None))
+                    .values(access_control=sa.bindparam('private_value')),
+                    {
+                        'private_value': json.dumps({}),
+                        'resource_type': resource_type,
+                    },
                 )
             except Exception:
                 pass

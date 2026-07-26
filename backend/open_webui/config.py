@@ -515,7 +515,7 @@ if VECTOR_DB == 'chroma':
 
 
 # MariaDB Vector (mariadb-vector)
-MARIADB_VECTOR_DB_URL = os.getenv('MARIADB_VECTOR_DB_URL', '').strip()
+MARIADB_VECTOR_DB_URL = os.getenv('MARIADB_VECTOR_DB_URL', DATABASE_URL).strip()
 
 MARIADB_VECTOR_INITIALIZE_MAX_VECTOR_LENGTH = int(
     os.getenv('MARIADB_VECTOR_INITIALIZE_MAX_VECTOR_LENGTH', '1536').strip() or '1536'

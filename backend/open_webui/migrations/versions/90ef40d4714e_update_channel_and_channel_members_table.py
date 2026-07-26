@@ -11,6 +11,7 @@ from typing import Sequence, Union
 import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '90ef40d4714e'
@@ -31,20 +32,20 @@ def upgrade() -> None:
     if 'archived_at' not in channel_cols:
         op.add_column('channel', sa.Column('archived_at', sa.BigInteger(), nullable=True))
     if 'archived_by' not in channel_cols:
-        op.add_column('channel', sa.Column('archived_by', sa.Text(), nullable=True))
+        op.add_column('channel', sa.Column('archived_by', key_text(), nullable=True))
     if 'deleted_at' not in channel_cols:
         op.add_column('channel', sa.Column('deleted_at', sa.BigInteger(), nullable=True))
     if 'deleted_by' not in channel_cols:
-        op.add_column('channel', sa.Column('deleted_by', sa.Text(), nullable=True))
+        op.add_column('channel', sa.Column('deleted_by', key_text(), nullable=True))
     if 'updated_by' not in channel_cols:
-        op.add_column('channel', sa.Column('updated_by', sa.Text(), nullable=True))
+        op.add_column('channel', sa.Column('updated_by', key_text(), nullable=True))
 
     # Update 'channel_member' table
     cm_cols = {c['name'] for c in inspector.get_columns('channel_member')}
     if 'role' not in cm_cols:
         op.add_column('channel_member', sa.Column('role', sa.Text(), nullable=True))
     if 'invited_by' not in cm_cols:
-        op.add_column('channel_member', sa.Column('invited_by', sa.Text(), nullable=True))
+        op.add_column('channel_member', sa.Column('invited_by', key_text(), nullable=True))
     if 'invited_at' not in cm_cols:
         op.add_column('channel_member', sa.Column('invited_at', sa.BigInteger(), nullable=True))
 
@@ -52,11 +53,11 @@ def upgrade() -> None:
     if 'channel_webhook' not in existing_tables:
         op.create_table(
             'channel_webhook',
-            sa.Column('id', sa.Text(), primary_key=True, unique=True, nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True, unique=True, nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column(
                 'channel_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('channel.id', ondelete='CASCADE'),
                 nullable=False,
             ),

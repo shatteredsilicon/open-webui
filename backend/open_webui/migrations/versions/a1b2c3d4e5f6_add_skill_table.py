@@ -10,7 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
-from open_webui.migrations.util import get_existing_tables
+from open_webui.migrations.util import get_existing_tables, key_text, portable_string
 
 revision: str = 'a1b2c3d4e5f6'
 down_revision: Union[str, None] = 'f1e2d3c4b5a6'
@@ -24,9 +24,9 @@ def upgrade() -> None:
     if 'skill' not in existing_tables:
         op.create_table(
             'skill',
-            sa.Column('id', sa.String(), nullable=False, primary_key=True),
-            sa.Column('user_id', sa.String(), nullable=False),
-            sa.Column('name', sa.Text(), nullable=False, unique=True),
+            sa.Column('id', portable_string(), nullable=False, primary_key=True),
+            sa.Column('user_id', portable_string(), nullable=False),
+            sa.Column('name', key_text(), nullable=False, unique=True),
             sa.Column('description', sa.Text(), nullable=True),
             sa.Column('content', sa.Text(), nullable=False),
             sa.Column('meta', sa.JSON(), nullable=True),

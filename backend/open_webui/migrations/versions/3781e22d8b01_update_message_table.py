@@ -8,6 +8,7 @@ Create Date: 2024-12-30 03:00:00.000000
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 revision = '3781e22d8b01'
 down_revision = '7826ab40b532'
@@ -37,15 +38,15 @@ def upgrade():
     if 'parent_id' not in message_cols:
         op.add_column(
             'message',
-            sa.Column('parent_id', sa.Text(), nullable=True),
+            sa.Column('parent_id', key_text(), nullable=True),
         )
 
     if 'message_reaction' not in existing_tables:
         op.create_table(
             'message_reaction',
-            sa.Column('id', sa.Text(), nullable=False, primary_key=True, unique=True),  # Unique reaction ID
-            sa.Column('user_id', sa.Text(), nullable=False),  # User who reacted
-            sa.Column('message_id', sa.Text(), nullable=False),  # Message that was reacted to
+            sa.Column('id', key_text(), nullable=False, primary_key=True, unique=True),  # Unique reaction ID
+            sa.Column('user_id', key_text(), nullable=False),  # User who reacted
+            sa.Column('message_id', key_text(), nullable=False),  # Message that was reacted to
             sa.Column('name', sa.Text(), nullable=False),  # Reaction name (e.g. "thumbs_up")
             sa.Column('created_at', sa.BigInteger(), nullable=True),  # Timestamp of when the reaction was added
         )
@@ -54,10 +55,10 @@ def upgrade():
         op.create_table(
             'channel_member',
             sa.Column(
-                'id', sa.Text(), nullable=False, primary_key=True, unique=True
+                'id', key_text(), nullable=False, primary_key=True, unique=True
             ),  # Record ID for the membership row
-            sa.Column('channel_id', sa.Text(), nullable=False),  # Associated channel
-            sa.Column('user_id', sa.Text(), nullable=False),  # Associated user
+            sa.Column('channel_id', key_text(), nullable=False),  # Associated channel
+            sa.Column('user_id', key_text(), nullable=False),  # Associated user
             sa.Column('created_at', sa.BigInteger(), nullable=True),  # Timestamp of when the user joined the channel
         )
 

@@ -13,6 +13,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 log = logging.getLogger(__name__)
 
@@ -66,14 +67,14 @@ def upgrade() -> None:
     # Step 1: Create table
     op.create_table(
         'chat_message',
-        sa.Column('id', sa.Text(), primary_key=True),
-        sa.Column('chat_id', sa.Text(), nullable=False, index=True),
-        sa.Column('user_id', sa.Text(), index=True),
+        sa.Column('id', key_text(), primary_key=True),
+        sa.Column('chat_id', key_text(), nullable=False, index=True),
+        sa.Column('user_id', key_text(), index=True),
         sa.Column('role', sa.Text(), nullable=False),
-        sa.Column('parent_id', sa.Text(), nullable=True),
+        sa.Column('parent_id', key_text(), nullable=True),
         sa.Column('content', sa.JSON(), nullable=True),
         sa.Column('output', sa.JSON(), nullable=True),
-        sa.Column('model_id', sa.Text(), nullable=True, index=True),
+        sa.Column('model_id', key_text(), nullable=True, index=True),
         sa.Column('files', sa.JSON(), nullable=True),
         sa.Column('sources', sa.JSON(), nullable=True),
         sa.Column('embeds', sa.JSON(), nullable=True),

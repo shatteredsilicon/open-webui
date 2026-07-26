@@ -66,6 +66,25 @@ def chat_list_order(sort_by: str = 'updated_at', sort_dir: str = 'desc', user_id
     )
     return unread.desc(), Chat.updated_at.desc(), Chat.id
 
+MYSQL_FAMILY_DIALECTS = {'mysql', 'mariadb'}
+
+
+def _mysql_json_array_contains(column, path: str, parameter_name: str):
+    """Return a MySQL/MariaDB predicate for an item in a JSON array."""
+    return (
+        func.json_contains(
+            column,
+            func.json_quote(bindparam(parameter_name)),
+            path,
+        )
+        == 1
+    )
+
+
+def _mysql_json_array_is_empty(column, path: str):
+    """Return a MySQL/MariaDB predicate for a missing or empty JSON array."""
+    return func.coalesce(func.json_length(func.json_extract(column, path)), 0) == 0
+
 
 class Chat(Base):  # database table mapping for chat entity
     __tablename__ = 'chat'
@@ -1928,6 +1947,39 @@ class ChatTable:
                             ]
                         )
                     )
+            elif dialect_name in MYSQL_FAMILY_DIALECTS:
+                # JSON_SEARCH supports LIKE-style wildcards and restricts the
+                # search to message content values. Lowering both inputs keeps
+                # the case-insensitive behavior of the other database paths.
+                mysql_content_clause = func.json_search(
+                    func.lower(Chat.chat),
+                    'one',
+                    func.concat('%', bindparam('content_key'), '%'),
+                    None,
+                    '$.messages[*].content',
+                ).is_not(None)
+                stmt = stmt.filter(
+                    or_(
+                        Chat.title.ilike(bindparam('title_key')),
+                        mysql_content_clause,
+                    )
+                ).params(title_key=f'%{search_text}%', content_key=search_text.lower())
+
+                if 'none' in tag_ids:
+                    stmt = stmt.filter(_mysql_json_array_is_empty(Chat.meta, '$.tags'))
+                elif tag_ids:
+                    stmt = stmt.filter(
+                        and_(
+                            *[
+                                _mysql_json_array_contains(
+                                    Chat.meta,
+                                    '$.tags',
+                                    f'tag_id_{tag_idx}',
+                                ).params(**{f'tag_id_{tag_idx}': tag_id})
+                                for tag_idx, tag_id in enumerate(tag_ids)
+                            ]
+                        )
+                    )
             else:
                 raise NotImplementedError(f'Unsupported dialect: {dialect_name}')
 
@@ -2110,6 +2162,10 @@ class ChatTable:
                 stmt = stmt.filter(
                     text("EXISTS (SELECT 1 FROM json_array_elements_text(Chat.meta->'tags') elem WHERE elem = :tag_id)")
                 ).params(tag_id=tag_id)
+            elif dialect_name in MYSQL_FAMILY_DIALECTS:
+                stmt = stmt.filter(
+                    _mysql_json_array_contains(Chat.meta, '$.tags', 'tag_id')
+                ).params(tag_id=tag_id)
             else:
                 raise NotImplementedError(f'Unsupported dialect: {dialect_name}')
 
@@ -2174,6 +2230,20 @@ class ChatTable:
         async with get_async_db_context(db) as session:
             bind = await session.connection()
             dialect_name = bind.dialect.name
+            if dialect_name == 'sqlite':
+                stmt = stmt.filter(
+                    text("EXISTS (SELECT 1 FROM json_each(Chat.meta, '$.tags') WHERE json_each.value = :tag_id)")
+                ).params(tag_id=tag_id)
+            elif dialect_name == 'postgresql':
+                stmt = stmt.filter(
+                    text("EXISTS (SELECT 1 FROM json_array_elements_text(Chat.meta->'tags') elem WHERE elem = :tag_id)")
+                ).params(tag_id=tag_id)
+            elif dialect_name in MYSQL_FAMILY_DIALECTS:
+                stmt = stmt.filter(
+                    _mysql_json_array_contains(Chat.meta, '$.tags', 'tag_id')
+                ).params(tag_id=tag_id)
+            else:
+                raise NotImplementedError(f'Unsupported dialect: {dialect_name}')
 
             columns = []
             for index, tag_id in enumerate(tag_ids):

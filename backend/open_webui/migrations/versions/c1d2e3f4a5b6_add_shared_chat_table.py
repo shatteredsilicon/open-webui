@@ -11,6 +11,7 @@ import uuid
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 revision = 'c1d2e3f4a5b6'
 down_revision = 'e1f2a3b4c5d6'
@@ -68,9 +69,9 @@ def upgrade():
     if 'shared_chat' not in tables:
         op.create_table(
             'shared_chat',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('chat_id', sa.Text(), sa.ForeignKey('chat.id', ondelete='CASCADE'), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('chat_id', key_text(), sa.ForeignKey('chat.id', ondelete='CASCADE'), nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column('title', sa.Text(), nullable=True),
             sa.Column('chat', sa.JSON(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=True),

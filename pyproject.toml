@@ -146,6 +146,7 @@ postgres = [
 ]
 mariadb = [
     "mariadb==1.1.14",
+    "asyncmy==0.2.11",
 ]
 unstructured = [
     "unstructured==0.22.31",

@@ -11,6 +11,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text, portable_string
 
 revision: str = '374d2f66af06'
 down_revision: Union[str, None] = 'c440947495f3'
@@ -64,16 +65,16 @@ def upgrade() -> None:
     if 'prompt_new' not in existing_tables:
         op.create_table(
             'prompt_new',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('command', sa.String(), unique=True, index=True),
-            sa.Column('user_id', sa.String(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('command', portable_string(), unique=True, index=True),
+            sa.Column('user_id', portable_string(), nullable=False),
             sa.Column('name', sa.Text(), nullable=False),
             sa.Column('content', sa.Text(), nullable=False),
             sa.Column('data', sa.JSON(), nullable=True),
             sa.Column('meta', sa.JSON(), nullable=True),
             sa.Column('access_control', sa.JSON(), nullable=True),
             sa.Column('is_active', sa.Boolean(), nullable=False, server_default='1'),
-            sa.Column('version_id', sa.Text(), nullable=True),
+            sa.Column('version_id', key_text(), nullable=True),
             sa.Column('tags', sa.JSON(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=False),
             sa.Column('updated_at', sa.BigInteger(), nullable=False),
@@ -83,11 +84,11 @@ def upgrade() -> None:
     if 'prompt_history' not in existing_tables:
         op.create_table(
             'prompt_history',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('prompt_id', sa.Text(), nullable=False, index=True),
-            sa.Column('parent_id', sa.Text(), nullable=True),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('prompt_id', key_text(), nullable=False, index=True),
+            sa.Column('parent_id', key_text(), nullable=True),
             sa.Column('snapshot', sa.JSON(), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column('commit_message', sa.Text(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=False),
         )
@@ -219,8 +220,8 @@ def downgrade() -> None:
     # Assuming old schema:
     op.create_table(
         'prompt',
-        sa.Column('command', sa.String(), primary_key=True),
-        sa.Column('user_id', sa.String()),
+        sa.Column('command', portable_string(), primary_key=True),
+        sa.Column('user_id', portable_string()),
         sa.Column('title', sa.Text()),
         sa.Column('content', sa.Text()),
         sa.Column('timestamp', sa.BigInteger()),

@@ -13,6 +13,8 @@ from alembic import op
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql import column, select, table, update
 
+from open_webui.migrations.util import get_primary_key_name_for_drop
+
 revision = '3ab32c4b8f59'
 down_revision = '1af9b942657b'
 branch_labels = None
@@ -35,7 +37,7 @@ def upgrade():
     with op.batch_alter_table('tag', schema=None) as batch_op:
         # Drop existing primary key constraint if it exists
         if existing_pk and existing_pk.get('constrained_columns'):
-            pk_name = existing_pk.get('name')
+            pk_name = get_primary_key_name_for_drop(conn, existing_pk)
             if pk_name:
                 print(f'Dropping primary key constraint: {pk_name}')
                 batch_op.drop_constraint(pk_name, type_='primary')
@@ -67,9 +69,15 @@ def downgrade():
     current_pk = inspector.get_pk_constraint('tag')
 
     with op.batch_alter_table('tag', schema=None) as batch_op:
-        # Drop the current primary key first, if it matches the one we know we added in upgrade
-        if current_pk and 'pk_id_user_id' == current_pk.get('name'):
-            batch_op.drop_constraint('pk_id_user_id', type_='primary')
+        # MySQL/MariaDB may not preserve the supplied primary-key name, so
+        # identify the key by its ordered columns and normalize its drop name.
+        if current_pk and list(current_pk.get('constrained_columns') or []) == [
+            'id',
+            'user_id',
+        ]:
+            pk_name = get_primary_key_name_for_drop(conn, current_pk)
+            if pk_name:
+                batch_op.drop_constraint(pk_name, type_='primary')
 
         # Restore the original primary key
         batch_op.create_primary_key('pk_id', ['id'])

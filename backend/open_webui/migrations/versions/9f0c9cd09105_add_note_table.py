@@ -8,6 +8,7 @@ Create Date: 2025-05-03 03:00:00.000000
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 revision = '9f0c9cd09105'
 down_revision = '3781e22d8b01'
@@ -23,8 +24,8 @@ def upgrade():
     if 'note' not in existing_tables:
         op.create_table(
             'note',
-            sa.Column('id', sa.Text(), nullable=False, primary_key=True, unique=True),
-            sa.Column('user_id', sa.Text(), nullable=True),
+            sa.Column('id', key_text(), nullable=False, primary_key=True, unique=True),
+            sa.Column('user_id', key_text(), nullable=True),
             sa.Column('title', sa.Text(), nullable=True),
             sa.Column('data', sa.JSON(), nullable=True),
             sa.Column('meta', sa.JSON(), nullable=True),

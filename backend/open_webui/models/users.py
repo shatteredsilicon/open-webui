@@ -27,7 +27,6 @@ from sqlalchemy import (
     select,
     update,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 ####################
@@ -360,16 +359,14 @@ class UsersTable:
         sub: str,
         db: AsyncSession | None = None,
     ) -> UserModel | None:
-        """Look up a user by OAuth provider + subject claim (dialect-aware JSON filter)."""
+        """Look up a user by OAuth provider + subject claim."""
         async with get_async_db_context(db) as session:
-            dialect = session.bind.dialect.name
-            query = select(User)
-            if dialect == 'sqlite':
-                oauth_match = User.oauth.contains({provider: {'sub': sub}})
-                query = query.where(oauth_match)
-            elif dialect == 'postgresql':
-                oauth_match = User.oauth[provider].cast(JSONB)['sub'].astext == sub
-                query = query.where(oauth_match)
+            # SQLAlchemy's JSON comparator emits the native JSON extraction
+            # syntax for SQLite, PostgreSQL, MySQL, and MariaDB. Keeping this
+            # expression dialect-neutral also prevents an unsupported dialect
+            # from accidentally executing an unfiltered user query.
+            oauth_match = User.oauth[provider]['sub'].as_string() == sub
+            query = select(User).where(oauth_match)
             row = (await session.execute(query)).scalars().first()
             return UserModel.model_validate(row) if row else None
 
@@ -379,16 +376,12 @@ class UsersTable:
         external_id: str,
         db: AsyncSession | None = None,
     ) -> UserModel | None:
-        """Look up a user by SCIM provider + external ID (dialect-aware JSON filter)."""
+        """Look up a user by SCIM provider + external ID."""
         async with get_async_db_context(db) as session:
-            dialect = session.bind.dialect.name
-            query = select(User)
-            if dialect == 'sqlite':
-                scim_match = User.scim.contains({provider: {'external_id': external_id}})
-                query = query.where(scim_match)
-            elif dialect == 'postgresql':
-                scim_match = User.scim[provider].cast(JSONB)['external_id'].astext == external_id
-                query = query.where(scim_match)
+            # Use the same portable JSON comparator as the OAuth lookup so the
+            # predicate remains correct on every supported primary database.
+            scim_match = User.scim[provider]['external_id'].as_string() == external_id
+            query = select(User).where(scim_match)
             row = (await session.execute(query)).scalars().first()
             return UserModel.model_validate(row) if row else None
 

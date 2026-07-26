@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '38d63c18f30f'
@@ -26,14 +27,14 @@ def upgrade() -> None:
     if 'oauth_session' not in existing_tables:
         op.create_table(
             'oauth_session',
-            sa.Column('id', sa.Text(), primary_key=True, nullable=False, unique=True),
+            sa.Column('id', key_text(), primary_key=True, nullable=False, unique=True),
             sa.Column(
                 'user_id',
-                sa.Text(),
+                key_text(),
                 sa.ForeignKey('user.id', ondelete='CASCADE'),
                 nullable=False,
             ),
-            sa.Column('provider', sa.Text(), nullable=False),
+            sa.Column('provider', key_text(), nullable=False),
             sa.Column('token', sa.Text(), nullable=False),
             sa.Column('expires_at', sa.BigInteger(), nullable=False),
             sa.Column('created_at', sa.BigInteger(), nullable=False),

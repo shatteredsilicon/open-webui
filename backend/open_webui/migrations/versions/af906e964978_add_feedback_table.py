@@ -8,6 +8,7 @@ Create Date: 2024-10-20 17:02:35.241684
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # Revision identifiers, used by Alembic.
 revision = 'af906e964978'
@@ -25,8 +26,8 @@ def upgrade():
         # ### Create feedback table ###
         op.create_table(
             'feedback',
-            sa.Column('id', sa.Text(), primary_key=True),  # Unique identifier for each feedback (TEXT type)
-            sa.Column('user_id', sa.Text(), nullable=True),  # ID of the user providing the feedback (TEXT type)
+            sa.Column('id', key_text(), primary_key=True),  # Unique identifier for each feedback (TEXT type)
+            sa.Column('user_id', key_text(), nullable=True),  # ID of the user providing the feedback (TEXT type)
             sa.Column('version', sa.BigInteger(), default=0),  # Version of feedback (BIGINT type)
             sa.Column('type', sa.Text(), nullable=True),  # Type of feedback (TEXT type)
             sa.Column('data', sa.JSON(), nullable=True),  # Feedback data (JSON type)

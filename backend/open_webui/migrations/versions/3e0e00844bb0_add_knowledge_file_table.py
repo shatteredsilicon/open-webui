@@ -15,6 +15,7 @@ import open_webui.internal.db
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '3e0e00844bb0'
@@ -33,17 +34,17 @@ def upgrade() -> None:
 
     op.create_table(
         'knowledge_file',
-        sa.Column('id', sa.Text(), primary_key=True),
-        sa.Column('user_id', sa.Text(), nullable=False),
+        sa.Column('id', key_text(), primary_key=True),
+        sa.Column('user_id', key_text(), nullable=False),
         sa.Column(
             'knowledge_id',
-            sa.Text(),
+            key_text(),
             sa.ForeignKey('knowledge.id', ondelete='CASCADE'),
             nullable=False,
         ),
         sa.Column(
             'file_id',
-            sa.Text(),
+            key_text(),
             sa.ForeignKey('file.id', ondelete='CASCADE'),
             nullable=False,
         ),

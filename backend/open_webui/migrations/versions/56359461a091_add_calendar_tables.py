@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '56359461a091'
@@ -32,8 +33,8 @@ def upgrade() -> None:
     if 'calendar' not in tables:
         op.create_table(
             'calendar',
-            sa.Column('id', sa.Text(), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column('name', sa.Text(), nullable=False),
             sa.Column('color', sa.Text(), nullable=True),
             sa.Column('is_default', sa.Boolean(), nullable=False),
@@ -52,9 +53,9 @@ def upgrade() -> None:
     if 'calendar_event' not in tables:
         op.create_table(
             'calendar_event',
-            sa.Column('id', sa.Text(), nullable=False),
-            sa.Column('calendar_id', sa.Text(), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), nullable=False),
+            sa.Column('calendar_id', key_text(), nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column('title', sa.Text(), nullable=False),
             sa.Column('description', sa.Text(), nullable=True),
             sa.Column('start_at', sa.BigInteger(), nullable=False),
@@ -81,10 +82,10 @@ def upgrade() -> None:
     if 'calendar_event_attendee' not in tables:
         op.create_table(
             'calendar_event_attendee',
-            sa.Column('id', sa.Text(), nullable=False),
-            sa.Column('event_id', sa.Text(), nullable=False),
-            sa.Column('user_id', sa.Text(), nullable=False),
-            sa.Column('status', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), nullable=False),
+            sa.Column('event_id', key_text(), nullable=False),
+            sa.Column('user_id', key_text(), nullable=False),
+            sa.Column('status', key_text(), nullable=False),
             sa.Column('meta', sa.JSON(), nullable=True),
             sa.Column('created_at', sa.BigInteger(), nullable=False),
             sa.Column('updated_at', sa.BigInteger(), nullable=False),

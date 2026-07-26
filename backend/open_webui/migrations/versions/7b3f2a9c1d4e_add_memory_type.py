@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from open_webui.migrations.util import portable_string
 
 
 revision: str = '7b3f2a9c1d4e'
@@ -25,7 +26,7 @@ def upgrade() -> None:
     indexes = {index['name'] for index in inspector.get_indexes('memory')}
 
     if 'type' not in columns:
-        op.add_column('memory', sa.Column('type', sa.String(), server_default='context', nullable=False))
+        op.add_column('memory', sa.Column('type', portable_string(), server_default='context', nullable=False))
 
     if 'ix_memory_type' not in indexes:
         op.create_index('ix_memory_type', 'memory', ['type'])

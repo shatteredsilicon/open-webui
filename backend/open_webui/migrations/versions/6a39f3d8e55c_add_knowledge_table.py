@@ -11,6 +11,7 @@ import json
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.sql import column, select, table
+from open_webui.migrations.util import key_text
 
 revision = '6a39f3d8e55c'
 down_revision = 'c0fbf31ca0db'
@@ -28,8 +29,8 @@ def upgrade():
         print('Creating knowledge table')
         knowledge_table = op.create_table(
             'knowledge',
-            sa.Column('id', sa.Text(), primary_key=True),
-            sa.Column('user_id', sa.Text(), nullable=False),
+            sa.Column('id', key_text(), primary_key=True),
+            sa.Column('user_id', key_text(), nullable=False),
             sa.Column('name', sa.Text(), nullable=False),
             sa.Column('description', sa.Text(), nullable=True),
             sa.Column('data', sa.JSON(), nullable=True),

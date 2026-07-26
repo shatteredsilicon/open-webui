@@ -13,6 +13,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 # revision identifiers, used by Alembic.
 revision: str = '37f288994c47'
@@ -32,16 +33,16 @@ def upgrade() -> None:
     # 1. Create new table
     op.create_table(
         'group_member',
-        sa.Column('id', sa.Text(), primary_key=True, unique=True, nullable=False),
+        sa.Column('id', key_text(), primary_key=True, unique=True, nullable=False),
         sa.Column(
             'group_id',
-            sa.Text(),
+            key_text(),
             sa.ForeignKey('group.id', ondelete='CASCADE'),
             nullable=False,
         ),
         sa.Column(
             'user_id',
-            sa.Text(),
+            key_text(),
             sa.ForeignKey('user.id', ondelete='CASCADE'),
             nullable=False,
         ),

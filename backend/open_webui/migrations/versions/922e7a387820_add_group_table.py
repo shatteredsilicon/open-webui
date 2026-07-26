@@ -8,6 +8,7 @@ Create Date: 2024-11-14 03:00:00.000000
 
 import sqlalchemy as sa
 from alembic import op
+from open_webui.migrations.util import key_text
 
 revision = '922e7a387820'
 down_revision = '4ace53fd72c8'
@@ -23,8 +24,8 @@ def upgrade():
     if 'group' not in existing_tables:
         op.create_table(
             'group',
-            sa.Column('id', sa.Text(), nullable=False, primary_key=True, unique=True),
-            sa.Column('user_id', sa.Text(), nullable=True),
+            sa.Column('id', key_text(), nullable=False, primary_key=True, unique=True),
+            sa.Column('user_id', key_text(), nullable=True),
             sa.Column('name', sa.Text(), nullable=True),
             sa.Column('description', sa.Text(), nullable=True),
             sa.Column('data', sa.JSON(), nullable=True),

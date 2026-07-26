@@ -274,6 +274,12 @@ wheels = [
 ]
 
 [[package]]
+name = "asyncmy"
+version = "0.2.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/3c/d8297584c40f3d1af55365026bcdca7844ecfea1d917ad19df48f8331a26/asyncmy-0.2.11.tar.gz", hash = "sha256:c3d65d959dde62c911e39ecd1ad0f1339a5e6929fc411d48cfc2f82846190bf4", size = 62865 }
+
+[[package]]
 name = "attrs"
 version = "26.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3131,6 +3137,7 @@ all = [
     { name = "weaviate-client" },
 ]
 mariadb = [
+    { name = "asyncmy" },
     { name = "mariadb" },
 ]
 postgres = [
@@ -3161,6 +3168,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = "==25.1.0" },
     { name = "asgiref", specifier = "==3.11.1" },
     { name = "async-timeout", specifier = "==5.0.1" },
+    { name = "asyncmy", marker = "extra == 'mariadb'", specifier = "==0.2.11" },
     { name = "authlib", specifier = "==1.7.2" },
     { name = "azure-ai-documentintelligence", specifier = "==1.0.2" },
     { name = "azure-identity", specifier = "==1.25.3" },

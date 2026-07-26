@@ -209,10 +209,10 @@ def enable_iam_token_auth(connectable) -> None:
 def _make_async_url(url: str) -> str:
     """Convert a sync database URL to its async driver equivalent.
 
-    The async engine uses psycopg (v3) which speaks libpq natively,
-    so all standard connection-string parameters (``sslmode``,
-    ``options``, ``target_session_attrs``, etc.) are passed through
-    without any translation.
+    PostgreSQL uses psycopg (v3), which speaks libpq natively, so all
+    standard connection-string parameters (``sslmode``, ``options``,
+    ``target_session_attrs``, etc.) are preserved. MariaDB/MySQL sync
+    driver URLs are converted to ``asyncmy`` for the runtime async engine.
     """
     if url.startswith('sqlite+sqlcipher://'):
         raise ValueError(
@@ -228,6 +228,10 @@ def _make_async_url(url: str) -> str:
         return url.replace('postgresql://', 'postgresql+psycopg://', 1)
     if url.startswith('postgres://'):
         return url.replace('postgres://', 'postgresql+psycopg://', 1)
+    if url.startswith('mariadb+mariadbconnector://'):
+        return url.replace('mariadb+mariadbconnector://', 'mariadb+asyncmy://', 1)
+    if url.startswith('mysql+pymysql://'):
+        return url.replace('mysql+pymysql://', 'mysql+asyncmy://', 1)
     # For other dialects, return as-is and let SQLAlchemy handle it
     return url
 
@@ -354,9 +358,9 @@ get_db = contextmanager(get_session)
 # ASYNC ENGINE (used for ALL runtime database operations)
 # ============================================================
 
-# psycopg (v3) speaks libpq natively — the full DATABASE_URL is passed
-# through as-is.  SSL params, ``options``, ``target_session_attrs``, etc.
-# all work without any stripping or translation.
+# Convert the configured sync URL to the async driver used for runtime
+# operations. PostgreSQL keeps its libpq parameters through psycopg (v3),
+# while MariaDB/MySQL use asyncmy.
 ASYNC_SQLALCHEMY_DATABASE_URL = _make_async_url(SQLALCHEMY_DATABASE_URL)
 
 # psycopg v3 cannot run in async mode under Windows' default
